@@ -7,18 +7,52 @@ use dotenv::dotenv;
 use std::env;
 
 use shakmaty::{Chess, Position};
-use shakmaty::uci::Uci;
+use shakmaty::uci::{Uci, ParseUciError, IllegalUciError};
 use shakmaty::fen;
 
 use rand::prelude::*;
 
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+enum UciError {
+	#[error("parse uci error")]
+	ParseUciError(#[from] ParseUciError),
+	#[error("illegal uci error")]
+	IllegelUciError(#[from] IllegalUciError),
+}
+
+fn _shakmaty_official() -> Result<(), UciError> {
+	let uci: Uci = "g1f3".parse()?;
+	let pos = Chess::default();
+	let m = uci.to_move(&pos)?;
+	println!("move {}", m);
+	Ok(())
+}
+
 fn _shakmaty(){
 	let pos = Chess::default();
 	
-	let legals = &pos.legals();
+	match "g1f3".parse::<Uci>() {
+		Ok(uci) => {
+			match uci.to_move(&pos) {
+				Ok(m) => match pos.play(&m) {
+					Ok(pos) => {											
+						println!("legals startpos g1f3 = {:?}", &pos.legals().iter().map(|m| Uci::from_standard(&m).to_string()).collect::<Vec<String>>());
+						println!("fen = {}", fen::fen(&pos));
+					},
+					Err(err) => println!("{:?}", err)
+				}, 
+				Err(err) => println!("{:?}", err)
+			}
+		},
+		Err(err) => println!("{:?}", err)
+	}
 	
-	println!("legals startpos = {:?}", legals.iter().map(|m| Uci::from_standard(&m).to_string()).collect::<Vec<String>>());
+	let pos = Chess::default();
 	
+	let legals = pos.legals();
+		
 	let rand_move = legals.choose(&mut rand::thread_rng()).unwrap();
 	
 	match pos.play(&rand_move) {
@@ -34,7 +68,8 @@ fn _shakmaty(){
 async fn main() {
 	dotenv().ok();
 	
-	//_shakmaty();
+	//_shakmaty();	
+	let _ = _shakmaty_official();
 
     for (key, value) in env::vars() {
 		match &key[..std::cmp::min(5, key.len())] {

@@ -457,7 +457,7 @@ checksum = "1482821306169ec4d07f6aca392a4681f66c75c9918aa49641a2595db64053cb"
 [[package]]
 name = "licorice"
 version = "0.1.0"
-source = "git+https://gitlab.com/icp1994/licorice#8869abbc32bffdb1044270aab1d72cd5393e8090"
+source = "git+https://gitlab.com/icp1994/licorice#eb434d1c8696f2882b4dc0e14e23881d28bd25ae"
 dependencies = [
  "bytes",
  "chrono",
@@ -478,6 +478,7 @@ dependencies = [
  "licorice",
  "rand 0.8.0",
  "shakmaty",
+ "thiserror",
  "tokio",
 ]
 
