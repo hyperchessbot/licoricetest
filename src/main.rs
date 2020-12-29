@@ -19,7 +19,7 @@ enum UciError {
 	#[error("parse uci error")]
 	ParseUciError(#[from] ParseUciError),
 	#[error("illegal uci error")]
-	IllegelUciError(#[from] IllegalUciError),
+	IllegalUciError(#[from] IllegalUciError),
 }
 
 fn _shakmaty_official() -> Result<(), Box<dyn std::error::Error>> {
@@ -28,6 +28,19 @@ fn _shakmaty_official() -> Result<(), Box<dyn std::error::Error>> {
 	let m = uci.to_move(&pos)?;
 	println!("move {}", m);
 	Ok(())
+}
+
+fn make_uci_moves(ucis_str: &str) -> Result<String, Box<dyn std::error::Error>> {
+	let mut pos = Chess::default();
+	for uci_str in ucis_str.split(" ") {
+		let uci: Uci = uci_str.parse()?;						
+		let m = uci.to_move(&pos.to_owned())?;		
+		match pos.to_owned().play(&m) {
+			Ok(newpos) => pos = newpos,
+			Err(_) => return Err(Box::new(IllegalUciError)),
+		}
+	}
+	Ok(fen::fen(&pos))
 }
 
 fn _shakmaty(){
@@ -65,11 +78,12 @@ fn _shakmaty(){
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	dotenv().ok();
 	
 	//_shakmaty();	
 	//let _ = _shakmaty_official();
+	println!("{}", make_uci_moves("e2e4 e7e5 g1f3")?);
 
     for (key, value) in env::vars() {
 		match &key[..std::cmp::min(5, key.len())] {
@@ -119,4 +133,6 @@ async fn main() {
 		};
     	
 	}
+	
+	Ok(())
 }
