@@ -15,6 +15,6 @@ async fn main() {
 
 	while let Some(game) = stream.next().await {
     	let game = game.unwrap();
-    	println!("{:?}", game.id);
+    	println!("{:?}", game);
 	}
 }
