@@ -29,7 +29,9 @@ async fn main() {
 	while let Some(event) = stream.next().await {
     	let event = event.unwrap();
 		match event {
-			Event::Challenge{challenge} => println!("challenge {:?}", challenge.id),
+			Event::Challenge{challenge} => {
+				println!("challenge {:?}", challenge.id)
+			},
 			_ => println!("{:?}", event),
 		};
     	
