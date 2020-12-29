@@ -1,5 +1,5 @@
 use licorice::client::{Lichess};
-use licorice::models::board::{Event, GameFull};
+use licorice::models::board::{Event, BoardState};
 
 use tokio::stream::StreamExt;
 
@@ -43,11 +43,12 @@ async fn main() {
 					.unwrap();
 				
 				while let Some(game_event) = game_stream.next().await {
+					println!("{:?}", game_event);
 					let game_event = game_event.unwrap();
 					
 					match game_event {
-						GameFull { state, .. } => {
-							
+						BoardState::GameFull ( game_full ) => {
+							println!("game full {:?}", game_full);
 						},
 						_ => println!("unkown game event {:?}", game_event),
 					};
