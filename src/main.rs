@@ -1,5 +1,5 @@
 use licorice::client::{Lichess};
-use licorice::models::board::{Event};
+use licorice::models::board::{Event, GameFull};
 
 use tokio::stream::StreamExt;
 
@@ -38,7 +38,7 @@ async fn main() {
 				println!("game started {:?}", game.id);
 				
 				let mut game_stream = lichess
-					.stream_bot_game_state()
+					.stream_bot_game_state(&game.id)
 					.await
 					.unwrap();
 				
@@ -46,11 +46,12 @@ async fn main() {
 					let game_event = game_event.unwrap();
 					
 					match game_event {
-						GameFull { game } => {
+						GameFull { state, .. } => {
 							
 						},
-						_ => println!("unkown game event {:?}"),
-					}
+						_ => println!("unkown game event {:?}", game_event),
+					};
+				}
 			}
 			_ => println!("{:?}", event),
 		};
