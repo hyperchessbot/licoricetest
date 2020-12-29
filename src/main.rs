@@ -35,10 +35,11 @@ fn make_uci_moves(ucis_str: &str) -> Result<String, Box<dyn std::error::Error>> 
 	for uci_str in ucis_str.split(" ") {
 		let uci: Uci = uci_str.parse()?;						
 		let m = uci.to_move(&pos.to_owned())?;		
-		match pos.to_owned().play(&m) {
+		/*match pos.to_owned().play(&m) {
 			Ok(newpos) => pos = newpos,
 			Err(_) => return Err(Box::new(IllegalUciError)),
-		}
+		}*/
+		pos = pos.to_owned().play(&m)?;
 	}
 	Ok(fen::fen(&pos))
 }
