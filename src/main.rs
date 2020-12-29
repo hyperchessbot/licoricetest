@@ -69,7 +69,7 @@ async fn main() {
 	dotenv().ok();
 	
 	//_shakmaty();	
-	let _ = _shakmaty_official();
+	//let _ = _shakmaty_official();
 
     for (key, value) in env::vars() {
 		match &key[..std::cmp::min(5, key.len())] {
