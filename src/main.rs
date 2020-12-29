@@ -10,6 +10,8 @@ use shakmaty::{Chess, Position};
 use shakmaty::uci::Uci;
 use shakmaty::fen;
 
+use rand::prelude::*;
+
 fn _shakmaty(){
 	let pos = Chess::default();
 	
@@ -17,10 +19,12 @@ fn _shakmaty(){
 	
 	println!("legals startpos = {:?}", legals.iter().map(|m| Uci::from_standard(&m).to_string()).collect::<Vec<String>>());
 	
-	match pos.play(&legals[0]) {
+	let rand_move = legals.choose(&mut rand::thread_rng()).unwrap();
+	
+	match pos.play(&rand_move) {
 		Ok(pos) => {
-			println!("legals startpos e4 = {:?}", &pos.legals().iter().map(|m| Uci::from_standard(&m).to_string()).collect::<Vec<String>>());
-			println!("fen = {:?}", fen::fen(&pos));
+			println!("legals startpos {} = {:?}", Uci::from_standard(&rand_move).to_string(), &pos.legals().iter().map(|m| Uci::from_standard(&m).to_string()).collect::<Vec<String>>());
+			println!("fen = {}", fen::fen(&pos));
 		},
 		Err(err) => println!("{:?}", err)
 	}	
@@ -30,7 +34,7 @@ fn _shakmaty(){
 async fn main() {
 	dotenv().ok();
 	
-	//_shakmaty();
+	_shakmaty();
 
     for (key, value) in env::vars() {
 		match &key[..std::cmp::min(5, key.len())] {
