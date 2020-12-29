@@ -22,7 +22,7 @@ enum UciError {
 	IllegelUciError(#[from] IllegalUciError),
 }
 
-fn _shakmaty_official() -> Result<(), UciError> {
+fn _shakmaty_official() -> Result<(), Box<dyn std::error::Error>> {
 	let uci: Uci = "g1f3".parse()?;
 	let pos = Chess::default();
 	let m = uci.to_move(&pos)?;
