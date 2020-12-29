@@ -16,17 +16,21 @@ async fn main() {
 		};
     }
 	
-	let lichess = Lichess::default();
+	 let lichess = Lichess::new(std::env::var("RUST_BOT_TOKEN").unwrap());
 
-	let query_params = vec![("max", "1")];
+	let _query_params = vec![("max", "1")];
 
 	let mut stream = lichess
-		.export_all_games_json("chesshyperbot", Some(&query_params))
+		.stream_incoming_events()
 		.await
 		.unwrap();
 
-	while let Some(game) = stream.next().await {
-    	let game = game.unwrap();
-    	println!("{:?}", game.id);
+	while let Some(event) = stream.next().await {
+    	let event = event.unwrap();
+		match event {
+			Challenge(challenge) => println!("challenge {:?}", event.id),
+			_ => println!("{:?}", event),
+		};
+    	
 	}
 }
