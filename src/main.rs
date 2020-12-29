@@ -33,6 +33,9 @@ async fn main() {
 				println!("incoming challenge {:?}", challenge.id);
 				println!("accept response {:?}", lichess.challenge_accept(&challenge.id).await.unwrap());
 			},
+			Event::GameStart { game } => {
+				println!("game started {:?}", game);
+			},
 			_ => println!("{:?}", event),
 		};
     	
