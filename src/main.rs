@@ -2,8 +2,20 @@ use licorice::client::{Lichess};
 
 use tokio::stream::StreamExt;
 
+use dotenv::dotenv;
+use std::env;
+
 #[tokio::main]
 async fn main() {
+	dotenv().ok();
+
+    for (key, value) in env::vars() {
+		match &key[..std::cmp::min(5, key.len())] {
+			"RUST_" => println!("{}: {}", key, value),
+			_ => {},
+		};
+    }
+	
 	let lichess = Lichess::default();
 
 	let query_params = vec![("max", "1")];
@@ -15,6 +27,6 @@ async fn main() {
 
 	while let Some(game) = stream.next().await {
     	let game = game.unwrap();
-    	println!("{:?}", game);
+    	println!("{:?}", game.id);
 	}
 }

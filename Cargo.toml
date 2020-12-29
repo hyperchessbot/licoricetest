@@ -12,3 +12,6 @@ git = "https://gitlab.com/icp1994/licorice"
 [dependencies.tokio]
 version = "0.2.22"
 features = ["full"]
+
+[dependencies.dotenv]
+version = "0.15.0"
