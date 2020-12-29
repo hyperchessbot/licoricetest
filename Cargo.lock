@@ -443,6 +443,7 @@ name = "licoricetest"
 version = "0.1.0"
 dependencies = [
  "licorice",
+ "tokio",
 ]
 
 [[package]]

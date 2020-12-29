@@ -8,3 +8,7 @@ edition = "2018"
 
 [dependencies.licorice]
 git = "https://gitlab.com/icp1994/licorice"
+
+[dependencies.tokio]
+version = "0.2.22"
+features = ["full"]
