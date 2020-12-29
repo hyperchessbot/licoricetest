@@ -29,12 +29,12 @@ async fn main() {
 	while let Some(event) = stream.next().await {
     	let event = event.unwrap();
 		match event {
-			Event::Challenge{challenge} => {
+			Event::Challenge { challenge } => {
 				println!("incoming challenge {:?}", challenge.id);
 				println!("accept response {:?}", lichess.challenge_accept(&challenge.id).await.unwrap());
 			},
 			Event::GameStart { game } => {
-				println!("game started {:?}", game);
+				println!("game started {:?}", game.id);
 			},
 			_ => println!("{:?}", event),
 		};
