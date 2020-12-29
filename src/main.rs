@@ -34,7 +34,7 @@ fn _shakmaty(){
 async fn main() {
 	dotenv().ok();
 	
-	_shakmaty();
+	//_shakmaty();
 
     for (key, value) in env::vars() {
 		match &key[..std::cmp::min(5, key.len())] {
