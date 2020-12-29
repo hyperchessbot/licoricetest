@@ -30,7 +30,8 @@ async fn main() {
     	let event = event.unwrap();
 		match event {
 			Event::Challenge{challenge} => {
-				println!("challenge {:?}", challenge.id)
+				println!("incoming challenge {:?}", challenge.id);
+				println!("accept response {:?}", lichess.challenge_accept(&challenge.id).await.unwrap());
 			},
 			_ => println!("{:?}", event),
 		};
