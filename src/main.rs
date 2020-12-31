@@ -204,7 +204,7 @@ fn get_pgn_with_digest(pgn_bytes: &[u8]) -> Result<PgnWithDigest, Box<dyn std::e
 async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 	let lichess = Lichess::new(std::env::var("RUST_BOT_TOKEN").unwrap());
 
-	let _query_params = vec![("max", "1")];
+	let _query_params = vec![("max", "3")];
 	
 	let mut stream = lichess
          .export_all_games_pgn("chesshyperbot", Some(&_query_params))
@@ -215,25 +215,37 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 	
 	let db = client.database("rustbook");
 	let pgns = db.collection("pgns");
+	
+	let mut recv_buffer:Vec<PgnWithDigest> = vec!{};
 
-	while let Some(pgn_bytes_result) = stream.next().await {
+	while let Some(pgn_bytes_result) = stream.next().await {		
+		println!("received item");
 		let pgn_bytes = pgn_bytes_result?;
 		let pgn_with_digest = get_pgn_with_digest(&pgn_bytes)?;
-		println!("received pgn with sha {}", pgn_with_digest.sha256_base64);
+		let sha = pgn_with_digest.sha256_base64.to_owned();
+		recv_buffer.push(pgn_with_digest);
+		println!("received pgn with sha {}", sha);
+	}
+	
+	for pgn_with_digest in recv_buffer {
+		println!("processing pgn with sha {}", pgn_with_digest.sha256_base64);
 		
 		let result = pgns.find_one(doc!{"_id": pgn_with_digest.sha256_base64.to_owned()}, None).await;
 		
 		match result {
-			Ok(doc_opt) => {
-				let pgn_with_digest:PgnWithDigest = doc_opt.unwrap().into();
-				println!("pgn already in db\n{}", pgn_with_digest)
+			Ok(Some(doc)) => {
+				let pgn_with_digest:PgnWithDigest = doc.into();
+				println!("pgn already in db {}", pgn_with_digest.sha256_base64)
 			},
-			Err(_) => {
+			_ => {
 				println!("pgn not in db, inserting");
 				
 				let result = pgns.insert_one(pgn_with_digest.into(), None).await;
 		
-				println!("insert result = {:?}", result);
+				match result {
+					Ok(_) => println!("pgn inserted ok"),
+					Err(err) => println!("inserting pgn failed {:?}", err)
+				}
 			}
 		}
 	}
