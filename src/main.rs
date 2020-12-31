@@ -217,8 +217,8 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 		let result = pgns.find_one(doc!{"_id": pgn_with_digest.sha256_base64.to_owned()}, None).await;
 		
 		match result {
-			Ok(_) => {
-				println!("pgn already in db")
+			Ok(doc_opt) => {
+				println!("pgn already in db {:?}", doc_opt.unwrap())
 			},
 			Err(_) => {
 				println!("pgn not in db, inserting");
