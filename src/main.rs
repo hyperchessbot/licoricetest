@@ -182,8 +182,8 @@ impl From<PgnWithDigest> for Document {
 impl From<Document> for PgnWithDigest {
 	fn from(document: Document) -> Self {
         PgnWithDigest{
-			pgn_str: if let Some(pgn) = document.get("pgn").and_then(Bson::as_str) { pgn.to_string() } else { "".to_string() },
-			sha256_base64: if let Some(id) = document.get("_id").and_then(Bson::as_str) { id.to_string() } else { "".to_string() },
+			pgn_str: document.get("pgn").and_then(Bson::as_str).unwrap_or("").to_string(),
+			sha256_base64: document.get("_id").and_then(Bson::as_str).unwrap_or("").to_string(),
 		}
     }
 }
