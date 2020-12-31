@@ -167,7 +167,7 @@ fn _print_env_vars() {
 #[derive(Debug)]
 struct PgnWithDigest<'a> {
 	pgn_bytes: &'a [u8],
-	pgn_str: &'a str,
+	pgn_str: String,
 	sha256_base64: String,
 }
 
@@ -180,7 +180,7 @@ impl std::fmt::Display for PgnWithDigest<'_> {
 fn get_pgn_with_digest(pgn_bytes: &[u8]) -> Result<PgnWithDigest, Box<dyn std::error::Error>> {
 	Ok(PgnWithDigest {
 		pgn_bytes: pgn_bytes,
-		pgn_str: std::str::from_utf8(pgn_bytes)?.trim(),
+		pgn_str: std::str::from_utf8(pgn_bytes)?.trim().to_string(),
 		sha256_base64: base64::encode(digest::digest(&digest::SHA256, pgn_bytes).as_ref()),
 	})
 }
@@ -197,8 +197,8 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 
 	while let Some(pgn_bytes_result) = stream.next().await {
 		let pgn_bytes = pgn_bytes_result?;
-		let pgnwithdigest = get_pgn_with_digest(&pgn_bytes)?;
-		println!("{}", pgnwithdigest);
+		let pgn_with_digest = get_pgn_with_digest(&pgn_bytes)?;
+		println!("{}", pgn_with_digest);
 	}
 	
 	Ok(())
