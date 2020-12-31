@@ -19,7 +19,7 @@ use ring::{digest};
 //////////////////////////////////////////////////////////////////
 // MongoDb
 use mongodb::{Client, options::ClientOptions};
-use mongodb::bson::{doc};
+use mongodb::bson::{doc, Document};
 
 async fn _connect() -> Result<Client, Box<dyn std::error::Error>>{
 	// Parse a connection string into an options struct.
@@ -174,6 +174,12 @@ struct PgnWithDigest<'a> {
 	sha256_base64: String,
 }
 
+impl From<PgnWithDigest<'_>> for Document {
+	fn from(pgn_with_digest: PgnWithDigest) -> Self {
+        doc!{"_id": pgn_with_digest.sha256_base64, "pgn": pgn_with_digest.pgn_str}
+    }
+}
+
 impl std::fmt::Display for PgnWithDigest<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("pgn = {}\nsha256(base64) = {}", self.pgn_str, self.sha256_base64))
@@ -206,13 +212,22 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 	while let Some(pgn_bytes_result) = stream.next().await {
 		let pgn_bytes = pgn_bytes_result?;
 		let pgn_with_digest = get_pgn_with_digest(&pgn_bytes)?;
-		println!("{}", pgn_with_digest);
+		println!("received pgn with sha {}", pgn_with_digest.sha256_base64);
 		
-		let doc = doc!{"_id": pgn_with_digest.sha256_base64, "pgn": pgn_with_digest.pgn_str};
+		let result = pgns.find_one(doc!{"_id": pgn_with_digest.sha256_base64.to_owned()}, None).await;
 		
-		let result = pgns.insert_one(doc, None).await?;
+		match result {
+			Ok(_) => {
+				println!("pgn already in db")
+			},
+			Err(_) => {
+				println!("pgn not in db, inserting");
+				
+				let result = pgns.insert_one(pgn_with_digest.into(), None).await;
 		
-		println!("insert result = {:?}", result);
+				println!("insert result = {:?}", result);
+			}
+		}
 	}
 	
 	Ok(())
