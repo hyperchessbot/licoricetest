@@ -19,8 +19,9 @@ use ring::{digest};
 //////////////////////////////////////////////////////////////////
 // MongoDb
 use mongodb::{Client, options::ClientOptions};
+use mongodb::bson::{doc};
 
-async fn _connect() -> Result<(), Box<dyn std::error::Error>>{
+async fn _connect() -> Result<Client, Box<dyn std::error::Error>>{
 	// Parse a connection string into an options struct.
 	let client_options = ClientOptions::parse(&std::env::var("RUST_MONGODB_URI").unwrap()).await?;
 
@@ -29,10 +30,12 @@ async fn _connect() -> Result<(), Box<dyn std::error::Error>>{
 
 	// List the names of the databases in that deployment.
 	for db_name in client.list_database_names(None, None).await? {
-		println!("{}", db_name);
+		println!("db {}", db_name);
 	}
 	
-	Ok(())
+	println!("mongodb connected ok");
+	
+	Ok(client)
 }
 //////////////////////////////////////////////////////////////////
 
@@ -194,11 +197,22 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
          .export_all_games_pgn("chesshyperbot", Some(&_query_params))
          .await
          .unwrap();
+	
+	let client = _connect().await?;
+	
+	let db = client.database("rustbook");
+	let pgns = db.collection("pgns");
 
 	while let Some(pgn_bytes_result) = stream.next().await {
 		let pgn_bytes = pgn_bytes_result?;
 		let pgn_with_digest = get_pgn_with_digest(&pgn_bytes)?;
 		println!("{}", pgn_with_digest);
+		
+		let doc = doc!{"_id": pgn_with_digest.sha256_base64, "pgn": pgn_with_digest.pgn_str};
+		
+		let result = pgns.insert_one(doc, None).await?;
+		
+		println!("insert result = {:?}", result);
 	}
 	
 	Ok(())
