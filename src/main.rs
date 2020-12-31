@@ -269,7 +269,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	//println!("{}", make_uci_moves("e2e4 e7e5 g1f3")?);
 	//_connect().await?;
 	//_print_env_vars();
-	let _ = _get_games_pgn().await;
+	//let _ = _get_games_pgn().await;
+	let _ = _stream_events().await;
 	
 	Ok(())
 }
