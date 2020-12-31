@@ -773,10 +773,12 @@ dependencies = [
 name = "licoricetest"
 version = "0.1.0"
 dependencies = [
+ "base64 0.13.0",
  "dotenv",
  "licorice",
  "mongodb",
  "rand 0.8.0",
+ "ring",
  "shakmaty",
  "thiserror",
  "tokio",

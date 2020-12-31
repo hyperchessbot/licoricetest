@@ -14,6 +14,8 @@ use rand::prelude::*;
 
 use thiserror::Error;
 
+use ring::{digest};
+
 //////////////////////////////////////////////////////////////////
 // MongoDb
 use mongodb::{Client, options::ClientOptions};
@@ -175,7 +177,11 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 	while let Some(pgnbytesresult) = stream.next().await {
 		let pgnbytes = pgnbytesresult?;
 		let pgnstr = std::str::from_utf8(&pgnbytes)?;
-		print!("{}", pgnstr);
+		let sha256 = digest::digest(&digest::SHA256, &pgnbytes);		
+		let sha256base64 = base64::encode(sha256.as_ref());
+		println!("{:?}", sha256base64);
+
+		println!("{}\nsha256 = {:?}", pgnstr, sha256base64);
 	}
 	
 	Ok(())
