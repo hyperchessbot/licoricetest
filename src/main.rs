@@ -194,11 +194,14 @@ impl std::fmt::Display for PgnWithDigest {
     }
 }
 
-fn get_pgn_with_digest(pgn_bytes: &[u8]) -> Result<PgnWithDigest, Box<dyn std::error::Error>> {
-	Ok(PgnWithDigest {
-		pgn_str: std::str::from_utf8(pgn_bytes)?.trim().to_string(),
-		sha256_base64: base64::encode(digest::digest(&digest::SHA256, pgn_bytes).as_ref()),
-	})
+
+impl From<&str> for PgnWithDigest {
+	fn from(pgn_str: &str) -> Self {
+		PgnWithDigest {
+			pgn_str: pgn_str.to_string(),
+			sha256_base64: base64::encode(digest::digest(&digest::SHA256, pgn_str.as_bytes()).as_ref()),
+		}
+	}
 }
 
 async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
@@ -216,18 +219,22 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 	let db = client.database("rustbook");
 	let pgns = db.collection("pgns");
 	
-	let mut recv_buffer:Vec<PgnWithDigest> = vec!{};
+	//println!("{:?}", pgns.drop(None).await);
+	
+	let mut all_pgn = String::new();
 
-	while let Some(pgn_bytes_result) = stream.next().await {		
-		println!("received item");
-		let pgn_bytes = pgn_bytes_result?;
-		let pgn_with_digest = get_pgn_with_digest(&pgn_bytes)?;
-		let sha = pgn_with_digest.sha256_base64.to_owned();
-		recv_buffer.push(pgn_with_digest);
-		println!("received pgn with sha {}", sha);
+	while let Some(pgn_bytes_result) = stream.next().await {				
+		let pgn_bytes_chunk = pgn_bytes_result?;
+		println!("received item {}", pgn_bytes_chunk.len());		
+		all_pgn = all_pgn + std::str::from_utf8(&pgn_bytes_chunk)?;
 	}
 	
-	for pgn_with_digest in recv_buffer {
+	let mut items:Vec<&str> = all_pgn.split("\n\n\n").collect();	
+	let _ = items.pop();
+	
+	for pgn_str in items {
+		let pgn_with_digest:PgnWithDigest = pgn_str.into();
+		
 		println!("processing pgn with sha {}", pgn_with_digest.sha256_base64);
 		
 		let result = pgns.find_one(doc!{"_id": pgn_with_digest.sha256_base64.to_owned()}, None).await;
