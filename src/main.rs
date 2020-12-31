@@ -110,26 +110,9 @@ fn _shakmaty(){
 	}	
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-	dotenv().ok();
+async fn _stream_events() -> Result<(), Box<dyn std::error::Error>> {
+	let lichess = Lichess::new(std::env::var("RUST_BOT_TOKEN").unwrap());
 	
-	//_shakmaty();	
-	//let _ = _shakmaty_official();
-	//println!("{}", make_uci_moves("e2e4 e7e5 g1f3")?);
-	_connect().await?;
-
-    for (key, value) in env::vars() {
-		match &key[..std::cmp::min(5, key.len())] {
-			"RUST_" => println!("{}: {}", key, value),
-			_ => {},
-		};
-    }
-	
-	 let lichess = Lichess::new(std::env::var("RUST_BOT_TOKEN").unwrap());
-
-	let _query_params = vec![("max", "1")];
-
 	let mut event_stream = lichess
 		.stream_incoming_events()
 		.await
@@ -164,9 +147,50 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 				}
 			}
 			_ => println!("{:?}", event),
-		};
-    	
+		};    	
 	}
+	
+	Ok(())
+}
+
+fn _print_env_vars() {
+	for (key, value) in env::vars() {
+		match &key[..std::cmp::min(5, key.len())] {
+			"RUST_" => println!("{}: {}", key, value),
+			_ => {},
+		};
+    }
+}
+
+async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
+	let lichess = Lichess::new(std::env::var("RUST_BOT_TOKEN").unwrap());
+
+	let _query_params = vec![("max", "1")];
+	
+	let mut stream = lichess
+         .export_all_games_pgn("chesshyperbot", Some(&_query_params))
+         .await
+         .unwrap();
+
+	while let Some(pgnbytesresult) = stream.next().await {
+		let pgnbytes = pgnbytesresult?;
+		let pgnstr = std::str::from_utf8(&pgnbytes)?;
+		print!("{}", pgnstr);
+	}
+	
+	Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+	dotenv().ok();
+	
+	//_shakmaty();	
+	//let _ = _shakmaty_official();
+	//println!("{}", make_uci_moves("e2e4 e7e5 g1f3")?);
+	//_connect().await?;
+	//_print_env_vars();
+	let _ = _get_games_pgn().await;
 	
 	Ok(())
 }
