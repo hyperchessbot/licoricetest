@@ -19,7 +19,7 @@ use ring::{digest};
 //////////////////////////////////////////////////////////////////
 // MongoDb
 use mongodb::{Client, options::ClientOptions};
-use mongodb::bson::{doc, Document};
+use mongodb::bson::{doc, Document, Bson};
 
 async fn _connect() -> Result<Client, Box<dyn std::error::Error>>{
 	// Parse a connection string into an options struct.
@@ -168,19 +168,27 @@ fn _print_env_vars() {
 }
 
 #[derive(Debug)]
-struct PgnWithDigest<'a> {
-	pgn_bytes: &'a [u8],
+struct PgnWithDigest {	
 	pgn_str: String,
 	sha256_base64: String,
 }
 
-impl From<PgnWithDigest<'_>> for Document {
+impl From<PgnWithDigest> for Document {
 	fn from(pgn_with_digest: PgnWithDigest) -> Self {
         doc!{"_id": pgn_with_digest.sha256_base64, "pgn": pgn_with_digest.pgn_str}
     }
 }
 
-impl std::fmt::Display for PgnWithDigest<'_> {
+impl From<Document> for PgnWithDigest {
+	fn from(document: Document) -> Self {
+        PgnWithDigest{
+			pgn_str: if let Some(pgn) = document.get("pgn").and_then(Bson::as_str) { pgn.to_string() } else { "".to_string() },
+			sha256_base64: if let Some(id) = document.get("_id").and_then(Bson::as_str) { id.to_string() } else { "".to_string() },
+		}
+    }
+}
+
+impl std::fmt::Display for PgnWithDigest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("pgn = {}\nsha256(base64) = {}", self.pgn_str, self.sha256_base64))
     }
@@ -188,7 +196,6 @@ impl std::fmt::Display for PgnWithDigest<'_> {
 
 fn get_pgn_with_digest(pgn_bytes: &[u8]) -> Result<PgnWithDigest, Box<dyn std::error::Error>> {
 	Ok(PgnWithDigest {
-		pgn_bytes: pgn_bytes,
 		pgn_str: std::str::from_utf8(pgn_bytes)?.trim().to_string(),
 		sha256_base64: base64::encode(digest::digest(&digest::SHA256, pgn_bytes).as_ref()),
 	})
@@ -218,7 +225,8 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 		
 		match result {
 			Ok(doc_opt) => {
-				println!("pgn already in db {:?}", doc_opt.unwrap())
+				let pgn_with_digest:PgnWithDigest = doc_opt.unwrap().into();
+				println!("pgn already in db\n{}", pgn_with_digest)
 			},
 			Err(_) => {
 				println!("pgn not in db, inserting");
