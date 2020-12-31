@@ -164,6 +164,10 @@ fn _print_env_vars() {
     }
 }
 
+struct PgnWithDigest {
+	
+}
+
 async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 	let lichess = Lichess::new(std::env::var("RUST_BOT_TOKEN").unwrap());
 
