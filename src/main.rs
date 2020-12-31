@@ -191,7 +191,7 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 
 	while let Some(pgnbytesresult) = stream.next().await {
 		let pgnbytes = pgnbytesresult?;
-		let pgnwithdigest = get_pgn_with_digest(&pgnbytes);
+		let pgnwithdigest = get_pgn_with_digest(&pgnbytes)?;
 		println!("{:?}", pgnwithdigest);
 	}
 	
