@@ -164,8 +164,19 @@ fn _print_env_vars() {
     }
 }
 
-struct PgnWithDigest {
-	
+#[derive(Debug)]
+struct PgnWithDigest<'a> {
+	pgnbytes: &'a [u8],
+	pgnstr: &'a str,
+	sha256base64: String,
+}
+
+fn get_pgn_with_digest(pgnbytes: &[u8]) -> Result<PgnWithDigest, Box<dyn std::error::Error>> {
+	Ok(PgnWithDigest {
+		pgnbytes: pgnbytes,
+		pgnstr: std::str::from_utf8(pgnbytes)?,
+		sha256base64: base64::encode(digest::digest(&digest::SHA256, pgnbytes).as_ref()),
+	})
 }
 
 async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
@@ -180,12 +191,8 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 
 	while let Some(pgnbytesresult) = stream.next().await {
 		let pgnbytes = pgnbytesresult?;
-		let pgnstr = std::str::from_utf8(&pgnbytes)?;
-		let sha256 = digest::digest(&digest::SHA256, &pgnbytes);		
-		let sha256base64 = base64::encode(sha256.as_ref());
-		println!("{:?}", sha256base64);
-
-		println!("{}\nsha256 = {:?}", pgnstr, sha256base64);
+		let pgnwithdigest = get_pgn_with_digest(&pgnbytes);
+		println!("{:?}", pgnwithdigest);
 	}
 	
 	Ok(())
