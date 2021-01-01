@@ -273,14 +273,25 @@ impl From<&str> for PgnWithDigest {
 	}
 }
 
+#[derive(Debug)]
+struct SanUciFen {
+	san: String,
+	uci: String,
+	fen: String,
+}
+
 struct LastPosition {
     pos: Chess,
+	moves: Vec<SanUciFen>,
 }
 
 impl LastPosition {
     fn new() -> LastPosition {
-        LastPosition { pos: Chess::default() }
-    }
+		LastPosition {
+			pos: Chess::default(),
+			moves: vec!(),
+		}
+	}
 }
 
 impl Visitor for LastPosition {
@@ -314,7 +325,8 @@ impl Visitor for LastPosition {
 					Ok(m) => {
 						let uci_str = Uci::from_standard(&m).to_string();
 						let fen_str = format!("{}", fen::fen(&self.pos));
-						println!("san {} uci {} fen {}", san_str, uci_str, fen_str);
+						let san_uci_fen = SanUciFen{san: san_str, uci: uci_str, fen: fen_str};
+						println!("san uci fen {:?}", san_uci_fen);
 						self.pos.play_unchecked(&m);
 					},
 					_ => println!("{:?}", move_result)
