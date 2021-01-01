@@ -142,6 +142,8 @@ async fn _stream_events() -> Result<(), Box<dyn std::error::Error>> {
 					.await
 					.unwrap();
 				
+				let mut game_id = String::new();
+				
 				while let Some(game_event) = game_stream.next().await {
 					println!("{:?}", game_event);
 					let game_event = game_event.unwrap();
@@ -149,8 +151,7 @@ async fn _stream_events() -> Result<(), Box<dyn std::error::Error>> {
 					let white:String;
 					let black:String;
 					let bot = std::env::var("RUST_BOT_NAME").unwrap();
-					let mut bot_white = true;
-					let game_id:String;
+					let mut bot_white = true;					
 					
 					let mut state:Vec<GameState> = vec!();
 					
@@ -201,6 +202,18 @@ async fn _stream_events() -> Result<(), Box<dyn std::error::Error>> {
 					let bot_turn = ( ( turn == Color::White ) && bot_white ) || ( ( turn == Color::Black ) && !bot_white );
 					
 					println!("bot turn {}", bot_turn);
+					
+					if bot_turn {
+						let move_uci = rand_uci;
+						
+						println!("making move {}", move_uci);
+						
+						let id = game_id.to_owned();
+						
+						let result = lichess.make_a_bot_move(id.as_str(), move_uci.as_str(), false).await;
+						
+						println!("make move result {:?}", result);
+					}
 				}
 			}
 			_ => println!("{:?}", event),
