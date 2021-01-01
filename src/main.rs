@@ -312,6 +312,8 @@ impl Visitor for LastPosition {
 				
 				match move_result {
 					Ok(m) => {
+						let uci_str = Uci::from_standard(&m).to_string();
+						println!("san {} uci {}", san_str, uci_str);
 						self.pos.play_unchecked(&m);
 					},
 					_ => println!("{:?}", move_result)
