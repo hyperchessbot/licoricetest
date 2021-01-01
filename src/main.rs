@@ -301,10 +301,9 @@ impl Visitor for LastPosition {
         Skip(true) // stay in the mainline
     }
 
-    fn san(&mut self, _san_plus: SanPlus) {
-        /*if let Ok(m) = san_plus.san.to_move(&self.pos) {
-            self.pos.play_unchecked(&m);
-        }*/
+    fn san(&mut self, san_plus: SanPlus) {
+		let san = san_plus.san;
+		println!("san {}", san);        
     }
 
     fn end_game(&mut self) -> Self::Result {
@@ -371,9 +370,7 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 		let mut reader = BufferedReader::new_cursor(&pgn_bytes);
 
 		let mut visitor = LastPosition::new();
-		let pos = reader.read_game(&mut visitor)?;
-		
-		println!("final pos {:?}", pos);
+		let _ = reader.read_game(&mut visitor)?;
 	}
 	
 	Ok(())
