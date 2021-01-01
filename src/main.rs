@@ -1,5 +1,5 @@
 use licorice::client::{Lichess};
-use licorice::models::board::{Event, BoardState};
+use licorice::models::board::{Event, BoardState, GameState};
 
 use tokio::stream::StreamExt;
 
@@ -70,13 +70,15 @@ fn _shakmaty_official() -> Result<(), Box<dyn std::error::Error>> {
 
 fn _make_uci_moves(ucis_str: &str) -> Result<String, Box<dyn std::error::Error>> {
 	let mut pos = Chess::default();
-	for uci_str in ucis_str.split(" ") {
-		let uci: Uci = uci_str.parse()?;						
-		let m = uci.to_move(&pos.to_owned())?;		
-		match pos.to_owned().play(&m) {
-			Ok(newpos) => pos = newpos,
-			Err(_) => return Err(Box::new(IllegalUciError)),
-		}		
+	if ucis_str.len() > 0 {
+		for uci_str in ucis_str.split(" ") {
+			let uci: Uci = uci_str.parse()?;						
+			let m = uci.to_move(&pos.to_owned())?;		
+			match pos.to_owned().play(&m) {
+				Ok(newpos) => pos = newpos,
+				Err(_) => return Err(Box::new(IllegalUciError)),
+			}		
+		}
 	}
 	Ok(fen::fen(&pos))
 }
@@ -143,12 +145,38 @@ async fn _stream_events() -> Result<(), Box<dyn std::error::Error>> {
 					println!("{:?}", game_event);
 					let game_event = game_event.unwrap();
 					
+					let white:String;
+					let black:String;
+					let bot = std::env::var("RUST_BOT_NAME").unwrap();
+					let mut bot_white = true;
+					
+					let mut state:Vec<GameState> = vec!();
+					
 					match game_event {
 						BoardState::GameFull ( game_full ) => {
-							println!("game full {:?}", game_full);
+							//println!("game full {:?}", game_full);
+							
+							white = game_full.white.username;
+							black = game_full.black.username;
+							if bot == black {
+								bot_white = false;
+							}
+							
+							state.push(game_full.state);
+							
+							println!("{} - {} bot white {}", white, black, bot_white);
+						},
+						BoardState::GameState ( game_state ) => {
+							state.push(game_state.clone());
 						},
 						_ => println!("unkown game event {:?}", game_event),
 					};
+					
+					let state = state.pop().unwrap();
+					
+					let fen = _make_uci_moves(state.moves.as_str())?;
+						
+					println!("fen {}", fen);
 				}
 			}
 			_ => println!("{:?}", event),
