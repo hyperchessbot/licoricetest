@@ -167,7 +167,7 @@ async fn _stream_events() -> Result<(), Box<dyn std::error::Error>> {
 							println!("{} - {} bot white {}", white, black, bot_white);
 						},
 						BoardState::GameState ( game_state ) => {
-							state.push(game_state.clone());
+							state.push(game_state);
 						},
 						_ => println!("unkown game event {:?}", game_event),
 					};
