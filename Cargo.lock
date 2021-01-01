@@ -789,6 +789,8 @@ dependencies = [
  "pgn-reader",
  "rand 0.8.0",
  "ring",
+ "serde",
+ "serde_json",
  "shakmaty 0.17.1",
  "thiserror",
  "tokio",

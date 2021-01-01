@@ -20,6 +20,8 @@ use thiserror::Error;
 
 use ring::{digest};
 
+use serde::{Deserialize, Serialize};
+
 //////////////////////////////////////////////////////////////////
 // MongoDb
 use mongodb::{Client, options::ClientOptions};
@@ -273,7 +275,8 @@ impl From<&str> for PgnWithDigest {
 	}
 }
 
-#[derive(Debug)]
+
+#[derive(Debug, Serialize, Deserialize)]
 struct SanUciFen {
 	san: String,
 	uci: String,
@@ -340,7 +343,15 @@ impl Visitor for LastPosition {
         let mut buff:String = String::new();
 		
 		for item in &self.moves[..] {
-			buff = buff + format!("{} {} {}\n", item.san, item.uci, item.fen).as_str();
+			let ser_result = serde_json::to_string(&item);
+			match ser_result {
+				Ok(ser_str) => {
+					buff = buff + format!("{}\n", ser_str).as_str()
+				},
+				Err(err) => {
+					println!("{:?}", err)
+				}
+			}			
 		}
 		
 		buff
