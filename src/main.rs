@@ -295,7 +295,7 @@ impl LastPosition {
 }
 
 impl Visitor for LastPosition {
-    type Result = Chess;
+    type Result = String;
 
     fn header(&mut self, key: &[u8], value: RawHeader<'_>) {
         // Support games from a non-standard starting position.
@@ -325,8 +325,8 @@ impl Visitor for LastPosition {
 					Ok(m) => {
 						let uci_str = Uci::from_standard(&m).to_string();
 						let fen_str = format!("{}", fen::fen(&self.pos));
-						let san_uci_fen = SanUciFen{san: san_str, uci: uci_str, fen: fen_str};
-						println!("san uci fen {:?}", san_uci_fen);
+						let san_uci_fen = SanUciFen{san: san_str, uci: uci_str, fen: fen_str};						
+						self.moves.push(san_uci_fen);
 						self.pos.play_unchecked(&m);
 					},
 					_ => println!("{:?}", move_result)
@@ -337,7 +337,13 @@ impl Visitor for LastPosition {
     }
 
     fn end_game(&mut self) -> Self::Result {
-        ::std::mem::replace(&mut self.pos, Chess::default())
+        let mut buff:String = String::new();
+		
+		for item in &self.moves[..] {
+			buff = buff + format!("{} {} {}\n", item.san, item.uci, item.fen).as_str();
+		}
+		
+		buff
     }
 }
 
@@ -400,9 +406,9 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 		let mut reader = BufferedReader::new_cursor(&pgn_bytes);
 
 		let mut visitor = LastPosition::new();
-		let pos = reader.read_game(&mut visitor)?;
+		let moves = reader.read_game(&mut visitor)?;
 		
-		println!("final pos {:?}", pos);
+		println!("moves\n\n{}", moves.unwrap());
 	}
 	
 	Ok(())
