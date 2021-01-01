@@ -8,6 +8,7 @@ use std::env;
 
 use shakmaty::{Chess, Position, Move, Color};
 use shakmaty::uci::{Uci, ParseUciError, IllegalUciError};
+use shakmaty::san::{San};
 use shakmaty::fen;
 use shakmaty::fen::Fen;
 
@@ -302,8 +303,22 @@ impl Visitor for LastPosition {
     }
 
     fn san(&mut self, san_plus: SanPlus) {
-		let san = san_plus.san;
-		println!("san {}", san);        
+		let san_orig = san_plus.san;
+		let san_str = format!("{}", san_orig);        
+		let san_result:std::result::Result<San, _> = san_str.parse();
+		match san_result {
+			Ok(san) => {
+				let move_result = san.to_move(&self.pos);
+				
+				match move_result {
+					Ok(m) => {
+						self.pos.play_unchecked(&m);
+					},
+					_ => println!("{:?}", move_result)
+				}				
+			},
+			_ => println!("{:?}", san_result)
+		}		
     }
 
     fn end_game(&mut self) -> Self::Result {
@@ -370,7 +385,9 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 		let mut reader = BufferedReader::new_cursor(&pgn_bytes);
 
 		let mut visitor = LastPosition::new();
-		let _ = reader.read_game(&mut visitor)?;
+		let pos = reader.read_game(&mut visitor)?;
+		
+		println!("final pos {:?}", pos);
 	}
 	
 	Ok(())
