@@ -300,6 +300,10 @@ impl PgnMoves {
 	fn push(&mut self, san_uci_fen: SanUciFen) {
 		self.moves.push(san_uci_fen);
 	}
+	
+	fn insert_header(&mut self, key: String, value: String) {
+		self.headers.insert(key, value);
+	}
 }
 
 struct LastPosition {
@@ -329,6 +333,20 @@ impl Visitor for LastPosition {
                 self.pos = pos;
             }
         }
+		
+		let key_str_result = std::str::from_utf8(key);
+		match key_str_result {
+			Ok(key_str) => {
+				let value_str_result = std::str::from_utf8(value.as_bytes());
+				match value_str_result {
+					Ok(value_str) => {
+						self.moves.insert_header(key_str.to_string(), value_str.to_string())
+					},
+					Err(err) => println!("{:?}", err)
+				}
+			}
+			Err(err) => println!("{:?}", err)
+		}		
     }
 
     fn begin_variation(&mut self) -> Skip {
