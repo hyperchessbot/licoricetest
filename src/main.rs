@@ -313,7 +313,8 @@ impl Visitor for LastPosition {
 				match move_result {
 					Ok(m) => {
 						let uci_str = Uci::from_standard(&m).to_string();
-						println!("san {} uci {}", san_str, uci_str);
+						let fen_str = format!("{}", fen::fen(&self.pos));
+						println!("san {} uci {} fen {}", san_str, uci_str, fen_str);
 						self.pos.play_unchecked(&m);
 					},
 					_ => println!("{:?}", move_result)
