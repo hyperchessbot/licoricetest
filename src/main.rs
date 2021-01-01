@@ -283,16 +283,33 @@ struct SanUciFen {
 	fen: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct PgnMoves {
+	moves: Vec<SanUciFen>,
+}
+
+impl PgnMoves {
+	fn new() -> PgnMoves {
+		PgnMoves {
+			moves: vec!(),
+		}
+	}
+	
+	fn push(&mut self, san_uci_fen: SanUciFen) {
+		self.moves.push(san_uci_fen);
+	}
+}
+
 struct LastPosition {
     pos: Chess,
-	moves: Vec<SanUciFen>,
+	moves: PgnMoves,
 }
 
 impl LastPosition {
     fn new() -> LastPosition {
 		LastPosition {
 			pos: Chess::default(),
-			moves: vec!(),
+			moves: PgnMoves::new(),
 		}
 	}
 }
@@ -340,21 +357,16 @@ impl Visitor for LastPosition {
     }
 
     fn end_game(&mut self) -> Self::Result {
-        let mut buff:String = String::new();
-		
-		for item in &self.moves[..] {
-			let ser_result = serde_json::to_string(&item);
-			match ser_result {
-				Ok(ser_str) => {
-					buff = buff + format!("{}\n", ser_str).as_str()
-				},
-				Err(err) => {
-					println!("{:?}", err)
-				}
-			}			
-		}
-		
-		buff
+		let ser_result = serde_json::to_string(&self.moves);
+		match ser_result {
+			Ok(ser_str) => {
+				ser_str
+			},
+			Err(err) => {
+				println!("{:?}", err);
+				"".to_string()
+			}
+		}			
     }
 }
 
