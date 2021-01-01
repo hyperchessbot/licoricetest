@@ -158,6 +158,7 @@ async fn _stream_events() -> Result<(), Box<dyn std::error::Error>> {
 							
 							white = game_full.white.username;
 							black = game_full.black.username;
+							
 							if bot == black {
 								bot_white = false;
 							}
