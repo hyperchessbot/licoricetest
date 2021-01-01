@@ -33,3 +33,6 @@ version = "0.16.19"
 
 [dependencies.base64]
 version = "0.13.0"
+
+[dependencies.pgn-reader]
+version = "0.15.0"

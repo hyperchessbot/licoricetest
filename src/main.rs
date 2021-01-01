@@ -11,6 +11,8 @@ use shakmaty::uci::{Uci, ParseUciError, IllegalUciError};
 use shakmaty::fen;
 use shakmaty::fen::Fen;
 
+use pgn_reader::{Visitor, Skip, RawHeader, BufferedReader, SanPlus};
+
 use rand::prelude::*;
 
 use thiserror::Error;
@@ -270,10 +272,50 @@ impl From<&str> for PgnWithDigest {
 	}
 }
 
+struct LastPosition {
+    pos: Chess,
+}
+
+impl LastPosition {
+    fn new() -> LastPosition {
+        LastPosition { pos: Chess::default() }
+    }
+}
+
+impl Visitor for LastPosition {
+    type Result = Chess;
+
+    fn header(&mut self, key: &[u8], value: RawHeader<'_>) {
+        // Support games from a non-standard starting position.
+        if key == b"FEN" {
+            let pos = Fen::from_ascii(value.as_bytes()).ok()
+                .and_then(|f| f.position(shakmaty::CastlingMode::Standard).ok());
+
+            if let Some(pos) = pos {
+                self.pos = pos;
+            }
+        }
+    }
+
+    fn begin_variation(&mut self) -> Skip {
+        Skip(true) // stay in the mainline
+    }
+
+    fn san(&mut self, _san_plus: SanPlus) {
+        /*if let Ok(m) = san_plus.san.to_move(&self.pos) {
+            self.pos.play_unchecked(&m);
+        }*/
+    }
+
+    fn end_game(&mut self) -> Self::Result {
+        ::std::mem::replace(&mut self.pos, Chess::default())
+    }
+}
+
 async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 	let lichess = Lichess::new(std::env::var("RUST_BOT_TOKEN").unwrap());
 
-	let _query_params = vec![("max", "3")];
+	let _query_params = vec![("max", "2")];
 	
 	let mut stream = lichess
          .export_all_games_pgn("chesshyperbot", Some(&_query_params))
@@ -299,6 +341,8 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 	let _ = items.pop();
 	
 	for pgn_str in items {
+		let old_pgn_str = pgn_str.to_owned();
+		
 		let pgn_with_digest:PgnWithDigest = pgn_str.into();
 		
 		println!("processing pgn with sha {}", pgn_with_digest.sha256_base64);
@@ -307,8 +351,8 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 		
 		match result {
 			Ok(Some(doc)) => {
-				let pgn_with_digest:PgnWithDigest = doc.into();
-				println!("pgn already in db {}", pgn_with_digest.sha256_base64)
+				let pgn_with_digest_stored:PgnWithDigest = doc.into();
+				println!("pgn already in db {}", pgn_with_digest_stored.sha256_base64)
 			},
 			_ => {
 				println!("pgn not in db, inserting");
@@ -321,6 +365,15 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 				}
 			}
 		}
+		
+		let pgn_bytes = old_pgn_str.as_bytes();
+		
+		let mut reader = BufferedReader::new_cursor(&pgn_bytes);
+
+		let mut visitor = LastPosition::new();
+		let pos = reader.read_game(&mut visitor)?;
+		
+		println!("final pos {:?}", pos);
 	}
 	
 	Ok(())
@@ -335,8 +388,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	//println!("{}", make_uci_moves("e2e4 e7e5 g1f3")?);
 	//_connect().await?;
 	//_print_env_vars();
-	//let _ = _get_games_pgn().await;
-	let _ = _stream_events().await;
+	let _ = _get_games_pgn().await;
+	//let _ = _stream_events().await;
 	
 	Ok(())
 }
