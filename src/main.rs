@@ -304,6 +304,10 @@ impl PgnMoves {
 	fn insert_header(&mut self, key: String, value: String) {
 		self.headers.insert(key, value);
 	}
+	
+	fn get_header(&mut self, key:String) -> String {
+		self.headers.get(&key).unwrap_or(&"?".to_string()).to_string()
+	}
 }
 
 struct LastPosition {
@@ -462,7 +466,15 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 		
 		let moves = parse_pgn(old_pgn_str);
 		
-		println!("moves\n\n{}", moves);
+		//println!("moves\n\n{}", moves);
+		
+		let mut moves:PgnMoves = serde_json::from_str(moves.as_str())?;
+		
+		println!("{} - {} {}",
+			moves.get_header("White".to_string()),
+			moves.get_header("Black".to_string()),
+			moves.get_header("Result".to_string())
+		);
 	}
 	
 	Ok(())
