@@ -6,8 +6,8 @@ use tokio::stream::StreamExt;
 use dotenv::dotenv;
 use std::env;
 
-use shakmaty::{Chess, Position, Move};
-use shakmaty::uci::{Uci, ParseUciError, IllegalUciError, Color};
+use shakmaty::{Chess, Position, Move, Color};
+use shakmaty::uci::{Uci, ParseUciError, IllegalUciError};
 use shakmaty::fen;
 use shakmaty::fen::Fen;
 
@@ -150,12 +150,17 @@ async fn _stream_events() -> Result<(), Box<dyn std::error::Error>> {
 					let black:String;
 					let bot = std::env::var("RUST_BOT_NAME").unwrap();
 					let mut bot_white = true;
+					let game_id:String;
 					
 					let mut state:Vec<GameState> = vec!();
 					
 					match game_event {
 						BoardState::GameFull ( game_full ) => {
 							//println!("game full {:?}", game_full);
+							
+							game_id = game_full.id;
+							
+							println!("game id {}", game_id);
 							
 							white = game_full.white.username;
 							black = game_full.black.username;
@@ -180,8 +185,8 @@ async fn _stream_events() -> Result<(), Box<dyn std::error::Error>> {
 						
 					println!("fen {}", fen);
 					
-					let pos: Chess = fen.parse::<Fen>().expect("valid fen")
-						.position(shakmaty::CastlingMode::Standard).expect("valid position");
+					let setup: Fen = fen.parse()?;
+					let pos: Chess = setup.position(shakmaty::CastlingMode::Standard)?;
 					
 					let legals = pos.legals();
 		
@@ -191,8 +196,9 @@ async fn _stream_events() -> Result<(), Box<dyn std::error::Error>> {
 					
 					println!("rand uci {}", rand_uci);
 					
-					let bot_turn = ( ( pos.turn == Color::White ) && bot_white )
-						|| ( ( pos.turn == Color::Black ) && !bot_white );
+					let turn = setup.turn;
+					
+					let bot_turn = ( ( turn == Color::White ) && bot_white ) || ( ( turn == Color::Black ) && !bot_white );
 					
 					println!("bot turn {}", bot_turn);
 				}
