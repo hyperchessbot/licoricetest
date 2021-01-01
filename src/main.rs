@@ -390,6 +390,22 @@ impl Visitor for LastPosition {
     }
 }
 
+fn parse_pgn(pgn_str: String) -> String {
+	let pgn_bytes = pgn_str.as_bytes();
+		
+	let mut reader = BufferedReader::new_cursor(&pgn_bytes);
+
+	let mut visitor = LastPosition::new();
+	
+	match reader.read_game(&mut visitor) {
+		Ok(moves_opt) => moves_opt.unwrap_or("".to_string()),
+		Err(err) => {
+			println!("{:?}", err);
+			"".to_string()
+		}
+	}
+}
+
 async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 	let lichess = Lichess::new(std::env::var("RUST_BOT_TOKEN").unwrap());
 
@@ -444,14 +460,9 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 			}
 		}
 		
-		let pgn_bytes = old_pgn_str.as_bytes();
+		let moves = parse_pgn(old_pgn_str);
 		
-		let mut reader = BufferedReader::new_cursor(&pgn_bytes);
-
-		let mut visitor = LastPosition::new();
-		let moves = reader.read_game(&mut visitor)?;
-		
-		println!("moves\n\n{}", moves.unwrap());
+		println!("moves\n\n{}", moves);
 	}
 	
 	Ok(())
