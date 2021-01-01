@@ -7,7 +7,7 @@ use dotenv::dotenv;
 use std::env;
 
 use shakmaty::{Chess, Position, Move};
-use shakmaty::uci::{Uci, ParseUciError, IllegalUciError};
+use shakmaty::uci::{Uci, ParseUciError, IllegalUciError, Color};
 use shakmaty::fen;
 use shakmaty::fen::Fen;
 
@@ -190,6 +190,11 @@ async fn _stream_events() -> Result<(), Box<dyn std::error::Error>> {
 					let rand_uci = Uci::from_standard(&rand_move).to_string();
 					
 					println!("rand uci {}", rand_uci);
+					
+					let bot_turn = ( ( pos.turn == Color::White ) && bot_white )
+						|| ( ( pos.turn == Color::Black ) && !bot_white );
+					
+					println!("bot turn {}", bot_turn);
 				}
 			}
 			_ => println!("{:?}", event),
