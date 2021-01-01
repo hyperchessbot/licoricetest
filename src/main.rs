@@ -9,6 +9,7 @@ use std::env;
 use shakmaty::{Chess, Position, Move};
 use shakmaty::uci::{Uci, ParseUciError, IllegalUciError};
 use shakmaty::fen;
+use shakmaty::fen::Fen;
 
 use rand::prelude::*;
 
@@ -178,6 +179,17 @@ async fn _stream_events() -> Result<(), Box<dyn std::error::Error>> {
 					let fen = _make_uci_moves(state.moves.as_str())?;
 						
 					println!("fen {}", fen);
+					
+					let pos: Chess = fen.parse::<Fen>().expect("valid fen")
+						.position(shakmaty::CastlingMode::Standard).expect("valid position");
+					
+					let legals = pos.legals();
+		
+					let rand_move = legals.choose(&mut rand::thread_rng()).unwrap();
+					
+					let rand_uci = Uci::from_standard(&rand_move).to_string();
+					
+					println!("rand uci {}", rand_uci);
 				}
 			}
 			_ => println!("{:?}", event),
