@@ -285,12 +285,14 @@ struct SanUciFen {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct PgnMoves {
+	headers: std::collections::HashMap<String, String>,
 	moves: Vec<SanUciFen>,
 }
 
 impl PgnMoves {
 	fn new() -> PgnMoves {
 		PgnMoves {
+			headers: std::collections::HashMap::new(),
 			moves: vec!(),
 		}
 	}
