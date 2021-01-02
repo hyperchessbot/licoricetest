@@ -1,5 +1,5 @@
 use licorice::client::{Lichess};
-use licorice::models::board::{Event, BoardState, GameState};
+use licorice::models::board::{Event, BoardState};
 
 use tokio::stream::StreamExt;
 use tokio::process::Command;
@@ -175,11 +175,9 @@ async fn _stream_events(
 					
 					let white:String;
 					let black:String;
-					let bot = std::env::var("RUST_BOT_NAME").unwrap();					
+					let bot = std::env::var("RUST_BOT_NAME").unwrap();				
 					
-					let mut state:Vec<GameState> = vec!();
-					
-					match game_event {
+					let state_opt = match game_event {
 						BoardState::GameFull ( game_full ) => {
 							game_id = game_full.id;
 							
@@ -192,75 +190,83 @@ async fn _stream_events(
 								bot_white = false;
 							}
 							
-							state.push(game_full.state);
-							
 							println!("{} - {} bot white {}", white, black, bot_white);
+							
+							Some(game_full.state)
 						},
 						BoardState::GameState ( game_state ) => {
-							state.push(game_state);
+							Some(game_state)
 						},
-						_ => println!("unkown game event {:?}", game_event),
+						_ => {
+							println!("unhandled game event {:?}", game_event);
+							None
+						}
 					};
 					
-					let state = state.pop().unwrap();
-					
-					let fen = _make_uci_moves(state.moves.as_str())?;
+					match state_opt {
+						Some(state) => {
+							let fen = _make_uci_moves(state.moves.as_str())?;
 						
-					println!("fen {}", fen);
-					
-					let setup: Fen = fen.parse()?;
-					let pos: Chess = setup.position(shakmaty::CastlingMode::Standard)?;
-					
-					let legals = pos.legals();
-		
-					let rand_move = legals.choose(&mut rand::thread_rng()).unwrap();
-					
-					let rand_uci = Uci::from_standard(&rand_move).to_string();
-					
-					println!("rand uci {}", rand_uci);
-					
-					let turn = setup.turn;
-					
-					println!("turn {:?}", turn);
-					
-					let bot_turn = ( ( turn == Color::White ) && bot_white ) || ( ( turn == Color::Black ) && !bot_white );
-					
-					println!("bot turn {}", bot_turn);
-					
-					if bot_turn {
-						let position_command = format!("position startpos moves {}\n",
-							state.moves
-						);
-						
-						println!("position command\n{}", position_command);
-						
-						let result = stdin.write_all(position_command.as_bytes()).await?;
-						
-						println!("write engine command result {:?}", result);
-						
-						let go_command = format!("go wtime {} winc {} btime {} binc {}\n",
-							state.wtime, state.winc, state.btime, state.binc
-						);
-						
-						println!("go command\n{}", go_command);
-						
-						let result = stdin.write_all(go_command.as_bytes()).await?;
-						
-						println!("write engine command result {:?}", result);
-						
-						let bestmove = rx.recv()?;
-						
-						let parts:Vec<&str> = bestmove.split(" ").collect();
-						
-						let bestmove = parts[1].to_string();
-						
-						println!("making bestmove {}", bestmove);
-						
-						let id = game_id.to_owned();
-						
-						let result = lichess.make_a_bot_move(id.as_str(), bestmove.as_str(), false).await;
-						
-						println!("make move result {:?}", result);
+							println!("fen {}", fen);
+
+							let setup: Fen = fen.parse()?;
+							let pos: Chess = setup.position(shakmaty::CastlingMode::Standard)?;
+
+							let legals = pos.legals();
+
+							let rand_move = legals.choose(&mut rand::thread_rng()).unwrap();
+
+							let rand_uci = Uci::from_standard(&rand_move).to_string();
+
+							println!("rand uci {}", rand_uci);
+
+							let turn = setup.turn;
+
+							println!("turn {:?}", turn);
+
+							let bot_turn = ( ( turn == Color::White ) && bot_white ) || ( ( turn == Color::Black ) && !bot_white );
+
+							println!("bot turn {}", bot_turn);
+
+							if bot_turn {
+								let position_command = format!("position startpos moves {}\n",
+									state.moves
+								);
+
+								println!("position command\n{}", position_command);
+
+								let result = stdin.write_all(position_command.as_bytes()).await?;
+
+								println!("write engine command result {:?}", result);
+
+								let go_command = format!("go wtime {} winc {} btime {} binc {}\n",
+									state.wtime, state.winc, state.btime, state.binc
+								);
+
+								println!("go command\n{}", go_command);
+
+								let result = stdin.write_all(go_command.as_bytes()).await?;
+
+								println!("write engine command result {:?}", result);
+
+								let bestmove = rx.recv()?;
+
+								let parts:Vec<&str> = bestmove.split(" ").collect();
+
+								let bestmove = parts[1].to_string();
+
+								println!("making bestmove {}", bestmove);
+
+								let id = game_id.to_owned();
+
+								let result = lichess.make_a_bot_move(id.as_str(), bestmove.as_str(), false).await;
+
+								println!("make move result {:?}", result);
+							}
+						},
+						_ => {
+							println!("no state to process");
+						}
 					}
 				}
 			}
@@ -559,7 +565,7 @@ async fn _exec_command() -> Result<(), Box<dyn std::error::Error>> {
     let stdout = child.stdout.take()
         .expect("child did not have a handle to stdout");
 	
-	let mut stdin = child.stdin.take()
+	let stdin = child.stdin.take()
 		.expect("child did not have a handle to stdin");
 	
     let reader = BufReader::new(stdout).lines();
@@ -581,14 +587,6 @@ async fn _exec_command() -> Result<(), Box<dyn std::error::Error>> {
 	});
 	
 	println!("spawned");
-	
-	stdin.write_all(b"go depth 5\n").await?;
-	
-	let result = rx.recv();
-	
-	println!("bestmove {:?}", result);
-	
-	//stdin.write_all(b"quit\n").await?;
 	
 	let result = _stream_events(rx, stdin).await;
 	
