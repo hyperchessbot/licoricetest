@@ -3,6 +3,8 @@ use licorice::models::board::{Event, BoardState, GameState};
 
 use tokio::stream::StreamExt;
 use tokio::process::Command;
+use tokio::io::{BufReader, AsyncBufReadExt};
+use std::process::Stdio;
 
 use dotenv::dotenv;
 use std::env;
@@ -491,15 +493,42 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 	Ok(())
 }
 
-async fn _exec_command() -> Result<(), Box<dyn std::error::Error>> {
-	let output = Command::new("ls").arg("-l")
-                        .output();
+async fn _read_stdout(mut reader: tokio::io::Lines<tokio::io::BufReader<tokio::process::ChildStdout>>) -> Result<(), Box<dyn std::error::Error>> {
+	while let Some(line) = reader.next_line().await? {
+		println!("Line: {}", line);
+	}
+	
+	Ok(())
+}
 
-    let output = output.await?;
+async fn _exec_command() -> Result<(), Box<dyn std::error::Error>> {
+	let mut cmd = Command::new("./stockfish12");
 	
-	let stdout_str = std::str::from_utf8(&output.stdout)?;
+	cmd.stdout(Stdio::piped());
 	
-	println!("{}", stdout_str);
+	let mut child = cmd.spawn()
+        .expect("failed to spawn command");
+
+    let stdout = child.stdout.take()
+        .expect("child did not have a handle to stdout");
+
+    let reader = BufReader::new(stdout).lines();
+	
+	tokio::spawn(async {
+        let status = child.await
+            .expect("child process encountered an error");
+
+        println!("child status was: {}", status);
+    });
+
+	tokio::spawn(async {
+		match _read_stdout(reader).await {
+			Ok(result) => println!("{:?}", result),
+			Err(err) => println!("{:?}", err)
+		}
+	});
+	
+	println!("spawned");
 	
 	Ok(())
 }
@@ -508,14 +537,15 @@ async fn _exec_command() -> Result<(), Box<dyn std::error::Error>> {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	dotenv().ok();
 	
+	let result = _exec_command().await; println!("{:?}", result);
+	
 	//_shakmaty();	
 	//let _ = _shakmaty_official();
 	//println!("{}", make_uci_moves("e2e4 e7e5 g1f3")?);
 	//_connect().await?;
 	//_print_env_vars();
-	//let _ = _get_games_pgn().await;
-	//let _ = _stream_events().await;
-	let result = _exec_command().await; println!("{:?}", result);
+	let _ = _get_games_pgn().await;
+	//let _ = _stream_events().await;	
 	
 	Ok(())
 }
