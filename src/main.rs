@@ -527,14 +527,18 @@ async fn _exec_command() -> Result<(), Box<dyn std::error::Error>> {
 
 	tokio::spawn(async {
 		match _read_stdout(reader).await {
-			Ok(result) => println!("{:?}", result),
-			Err(err) => println!("{:?}", err)
+			Ok(result) => println!("reader ok {:?}", result),
+			Err(err) => println!("reader err {:?}", err)
 		}
 	});
 	
 	println!("spawned");
 	
 	stdin.write_all(b"uci\n").await?;
+	
+	stdin.write_all(b"quit\n").await?;
+	
+	let _ = _get_games_pgn().await;
 	
 	Ok(())
 }
@@ -543,14 +547,15 @@ async fn _exec_command() -> Result<(), Box<dyn std::error::Error>> {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	dotenv().ok();
 	
-	let result = _exec_command().await; println!("{:?}", result);
+	let result = _exec_command().await;
+	println!("exec command result {:?}", result);
 	
 	//_shakmaty();	
 	//let _ = _shakmaty_official();
 	//println!("{}", make_uci_moves("e2e4 e7e5 g1f3")?);
 	//_connect().await?;
 	//_print_env_vars();
-	let _ = _get_games_pgn().await;
+	//let _ = _get_games_pgn().await;	
 	//let _ = _stream_events().await;	
 	
 	Ok(())
