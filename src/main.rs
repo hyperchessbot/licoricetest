@@ -395,7 +395,7 @@ impl Visitor for LastPosition {
     }
 }
 
-fn parse_pgn(pgn_str: String) -> String {
+fn parse_pgn_to_json_string(pgn_str: String) -> String {
 	let pgn_bytes = pgn_str.as_bytes();
 		
 	let mut reader = BufferedReader::new_cursor(&pgn_bytes);
@@ -411,10 +411,19 @@ fn parse_pgn(pgn_str: String) -> String {
 	}
 }
 
+fn parse_pgn_to_rust_struct(pgn_str: String) -> PgnMoves {
+	let parse_result = parse_pgn_to_json_string(pgn_str);
+		
+	match serde_json::from_str::<PgnMoves>(&parse_result) {
+		Ok(moves) => moves,
+		_ => PgnMoves::new(),
+	}
+}
+
 async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 	let lichess = Lichess::new(std::env::var("RUST_BOT_TOKEN").unwrap());
 
-	let _query_params = vec![("max", "2")];
+	let _query_params = vec![("max", "1")];
 	
 	let mut stream = lichess
          .export_all_games_pgn("chesshyperbot", Some(&_query_params))
@@ -426,7 +435,7 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 	let db = client.database("rustbook");
 	let pgns = db.collection("pgns");
 	
-	//println!("{:?}", pgns.drop(None).await);
+	println!("{:?}", pgns.drop(None).await);
 	
 	let mut all_pgn = String::new();
 
@@ -454,29 +463,28 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 				println!("pgn already in db {}", pgn_with_digest_stored.sha256_base64)
 			},
 			_ => {
-				println!("pgn not in db, inserting");
+				let mut moves = parse_pgn_to_rust_struct(old_pgn_str);
 				
-				let result = pgns.insert_one(pgn_with_digest.into(), None).await;
+				if moves.moves.len() > 0 {
+					println!("{} {} - {} {} {}",
+						moves.get_header("White".to_string()),
+						moves.get_header("WhiteElo".to_string()),
+						moves.get_header("Black".to_string()),
+						moves.get_header("BlackElo".to_string()),
+						moves.get_header("Result".to_string()),
+					);
+					
+					println!("pgn not in db, inserting");
+					
+					let result = pgns.insert_one(pgn_with_digest.into(), None).await;
 		
-				match result {
-					Ok(_) => println!("pgn inserted ok"),
-					Err(err) => println!("inserting pgn failed {:?}", err)
+					match result {
+						Ok(_) => println!("pgn inserted ok"),
+						Err(err) => println!("inserting pgn failed {:?}", err)
+					}
 				}
 			}
 		}
-		
-		let moves = parse_pgn(old_pgn_str);
-		
-		//println!("moves\n\n{}", moves);
-		
-		let mut moves:PgnMoves = serde_json::from_str(moves.as_str())?;
-		
-		println!("{} - {} {}\n{:?}",
-			moves.get_header("White".to_string()),
-			moves.get_header("Black".to_string()),
-			moves.get_header("Result".to_string()),
-			moves.moves[3],
-		);
 	}
 	
 	Ok(())
