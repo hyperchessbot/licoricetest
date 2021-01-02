@@ -2,6 +2,7 @@ use licorice::client::{Lichess};
 use licorice::models::board::{Event, BoardState, GameState};
 
 use tokio::stream::StreamExt;
+use tokio::process::Command;
 
 use dotenv::dotenv;
 use std::env;
@@ -290,7 +291,7 @@ struct PgnMoves {
 }
 
 impl PgnMoves {
-	fn new() -> PgnMoves {
+	fn _new() -> PgnMoves {
 		PgnMoves {
 			headers: std::collections::HashMap::new(),
 			moves: vec!(),
@@ -305,7 +306,7 @@ impl PgnMoves {
 		self.headers.insert(key, value);
 	}
 	
-	fn get_header(&mut self, key:String) -> String {
+	fn _get_header(&mut self, key:String) -> String {
 		self.headers.get(&key).unwrap_or(&"?".to_string()).to_string()
 	}
 }
@@ -316,10 +317,10 @@ struct LastPosition {
 }
 
 impl LastPosition {
-    fn new() -> LastPosition {
+    fn _new() -> LastPosition {
 		LastPosition {
 			pos: Chess::default(),
-			moves: PgnMoves::new(),
+			moves: PgnMoves::_new(),
 		}
 	}
 }
@@ -395,12 +396,12 @@ impl Visitor for LastPosition {
     }
 }
 
-fn parse_pgn_to_json_string(pgn_str: String) -> String {
+fn _parse_pgn_to_json_string(pgn_str: String) -> String {
 	let pgn_bytes = pgn_str.as_bytes();
 		
 	let mut reader = BufferedReader::new_cursor(&pgn_bytes);
 
-	let mut visitor = LastPosition::new();
+	let mut visitor = LastPosition::_new();
 	
 	match reader.read_game(&mut visitor) {
 		Ok(moves_opt) => moves_opt.unwrap_or("".to_string()),
@@ -411,12 +412,12 @@ fn parse_pgn_to_json_string(pgn_str: String) -> String {
 	}
 }
 
-fn parse_pgn_to_rust_struct(pgn_str: String) -> PgnMoves {
-	let parse_result = parse_pgn_to_json_string(pgn_str);
+fn _parse_pgn_to_rust_struct(pgn_str: String) -> PgnMoves {
+	let parse_result = _parse_pgn_to_json_string(pgn_str);
 		
 	match serde_json::from_str::<PgnMoves>(&parse_result) {
 		Ok(moves) => moves,
-		_ => PgnMoves::new(),
+		_ => PgnMoves::_new(),
 	}
 }
 
@@ -463,15 +464,15 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 				println!("pgn already in db {}", pgn_with_digest_stored.sha256_base64)
 			},
 			_ => {
-				let mut moves = parse_pgn_to_rust_struct(old_pgn_str);
+				let mut moves = _parse_pgn_to_rust_struct(old_pgn_str);
 				
 				if moves.moves.len() > 0 {
 					println!("{} {} - {} {} {}",
-						moves.get_header("White".to_string()),
-						moves.get_header("WhiteElo".to_string()),
-						moves.get_header("Black".to_string()),
-						moves.get_header("BlackElo".to_string()),
-						moves.get_header("Result".to_string()),
+						moves._get_header("White".to_string()),
+						moves._get_header("WhiteElo".to_string()),
+						moves._get_header("Black".to_string()),
+						moves._get_header("BlackElo".to_string()),
+						moves._get_header("Result".to_string()),
 					);
 					
 					println!("pgn not in db, inserting");
@@ -490,6 +491,19 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 	Ok(())
 }
 
+async fn _exec_command() -> Result<(), Box<dyn std::error::Error>> {
+	let output = Command::new("ls").arg("-l")
+                        .output();
+
+    let output = output.await?;
+	
+	let stdout_str = std::str::from_utf8(&output.stdout)?;
+	
+	println!("{}", stdout_str);
+	
+	Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	dotenv().ok();
@@ -499,8 +513,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	//println!("{}", make_uci_moves("e2e4 e7e5 g1f3")?);
 	//_connect().await?;
 	//_print_env_vars();
-	let _ = _get_games_pgn().await;
+	//let _ = _get_games_pgn().await;
 	//let _ = _stream_events().await;
+	let result = _exec_command().await; println!("{:?}", result);
 	
 	Ok(())
 }
