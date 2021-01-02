@@ -554,7 +554,7 @@ async fn _read_stdout(
 }
 
 async fn _exec_command() -> Result<(), Box<dyn std::error::Error>> {
-	let mut cmd = Command::new("./stockfish12");
+	let mut cmd = Command::new("stockfish12.exe");
 	
 	cmd.stdout(Stdio::piped());
 	cmd.stdin(Stdio::piped());
