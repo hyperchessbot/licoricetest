@@ -129,7 +129,10 @@ fn _shakmaty(){
 	}	
 }
 
-async fn _stream_events() -> Result<(), Box<dyn std::error::Error>> {
+async fn _stream_events(
+	rx: Receiver<String>,
+	mut stdin: tokio::process::ChildStdin
+) -> Result<(), Box<dyn std::error::Error>> {
 	let lichess = Lichess::new(std::env::var("RUST_BOT_TOKEN").unwrap());
 	
 	let mut event_stream = lichess
@@ -216,13 +219,37 @@ async fn _stream_events() -> Result<(), Box<dyn std::error::Error>> {
 					println!("bot turn {}", bot_turn);
 					
 					if bot_turn {
-						let move_uci = rand_uci;
+						let position_command = format!("position startpos moves {}\n",
+							state.moves
+						);
 						
-						println!("making move {}", move_uci);
+						println!("position command\n{}", position_command);
+						
+						let result = stdin.write_all(position_command.as_bytes()).await?;
+						
+						println!("write engine command result {:?}", result);
+						
+						let go_command = format!("go wtime {} winc {} btime {} binc {}\n",
+							state.wtime, state.winc, state.btime, state.binc
+						);
+						
+						println!("go command\n{}", go_command);
+						
+						let result = stdin.write_all(go_command.as_bytes()).await?;
+						
+						println!("write engine command result {:?}", result);
+						
+						let bestmove = rx.recv()?;
+						
+						let parts:Vec<&str> = bestmove.split(" ").collect();
+						
+						let bestmove = parts[1].to_string();
+						
+						println!("making bestmove {}", bestmove);
 						
 						let id = game_id.to_owned();
 						
-						let result = lichess.make_a_bot_move(id.as_str(), move_uci.as_str(), false).await;
+						let result = lichess.make_a_bot_move(id.as_str(), bestmove.as_str(), false).await;
 						
 						println!("make move result {:?}", result);
 					}
@@ -496,7 +523,10 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 	Ok(())
 }
 
-async fn _read_stdout(tx: Sender<String>, mut reader: tokio::io::Lines<tokio::io::BufReader<tokio::process::ChildStdout>>) -> Result<(), Box<dyn std::error::Error>> {
+async fn _read_stdout(
+	tx: Sender<String>,
+	mut reader: tokio::io::Lines<tokio::io::BufReader<tokio::process::ChildStdout>>
+) -> Result<(), Box<dyn std::error::Error>> {
 	while let Some(line) = reader.next_line().await? {
 		println!("Line: {}", line);
 		if &line[0..8] == "bestmove" {
@@ -549,7 +579,11 @@ async fn _exec_command() -> Result<(), Box<dyn std::error::Error>> {
 	
 	println!("bestmove {:?}", result);
 	
-	stdin.write_all(b"quit\n").await?;
+	//stdin.write_all(b"quit\n").await?;
+	
+	let result = _stream_events(rx, stdin).await;
+	
+	println!("stream events result {:?}", result);
 		
 	Ok(())
 }
