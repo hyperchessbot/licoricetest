@@ -152,7 +152,7 @@ async fn _stream_events(
 						println!("rejecting challenge, correspondence");
 					} else {
 						println!("accepting challenge, response {:?}",
-							lichess.challenge_accept(&challenge.id).await.unwrap());															}
+							lichess.challenge_accept(&challenge.id).await);															}
 				} else {
 					println!("rejecting challenge, wrong variant {}", challenge.variant.key);
 				}
@@ -229,6 +229,9 @@ async fn _stream_events(
 							println!("bot turn {}", bot_turn);
 
 							if bot_turn {
+								let _ = stdin.write_all(b"setoption name Threads value 8\n").await?;
+								let _ = stdin.write_all(b"setoption Move Overhead value 1200\n").await?;
+
 								let position_command = format!("position startpos moves {}\n",
 									state.moves
 								);
