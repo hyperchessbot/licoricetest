@@ -146,7 +146,16 @@ async fn _stream_events(
 		match event {
 			Event::Challenge { challenge } => {
 				println!("incoming challenge {:?}", challenge.id);
-				println!("accept response {:?}", lichess.challenge_accept(&challenge.id).await.unwrap());
+				
+				if challenge.variant.key == "standard" {
+					if challenge.speed == "correspondence" {
+						println!("rejecting challenge, correspondence");
+					} else {
+						println!("accepting challenge, response {:?}",
+							lichess.challenge_accept(&challenge.id).await.unwrap());															}
+				} else {
+					println!("rejecting challenge, wrong variant {}", challenge.variant.key);
+				}
 			},
 			Event::GameStart { game } => {
 				println!("game started {:?}", game.id);
