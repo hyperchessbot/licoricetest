@@ -35,11 +35,11 @@ async fn _connect() -> Result<Client, Box<dyn std::error::Error>>{
 	let client = Client::with_options(client_options)?;
 
 	// List the names of the databases in that deployment.
-	for db_name in client.list_database_names(None, None).await? {
+	/*for db_name in client.list_database_names(None, None).await? {
 		println!("db {}", db_name);
-	}
+	}*/
 	
-	println!("mongodb connected ok");
+	println!("connect mongodb Ok(())");
 	
 	Ok(client)
 }
@@ -435,13 +435,13 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 	let db = client.database("rustbook");
 	let pgns = db.collection("pgns");
 	
-	println!("{:?}", pgns.drop(None).await);
+	println!("drop pgns result {:?}", pgns.drop(None).await);
 	
 	let mut all_pgn = String::new();
 
 	while let Some(pgn_bytes_result) = stream.next().await {				
 		let pgn_bytes_chunk = pgn_bytes_result?;
-		println!("received item {}", pgn_bytes_chunk.len());		
+		println!("received item {} byte(s)", pgn_bytes_chunk.len());		
 		all_pgn = all_pgn + std::str::from_utf8(&pgn_bytes_chunk)?;
 	}
 	
