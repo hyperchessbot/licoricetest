@@ -3,7 +3,7 @@ use licorice::models::board::{Event, BoardState, GameState};
 
 use tokio::stream::StreamExt;
 use tokio::process::Command;
-use tokio::io::{BufReader, AsyncBufReadExt};
+use tokio::io::{BufReader, AsyncBufReadExt, AsyncWriteExt};
 use std::process::Stdio;
 
 use dotenv::dotenv;
@@ -505,6 +505,7 @@ async fn _exec_command() -> Result<(), Box<dyn std::error::Error>> {
 	let mut cmd = Command::new("./stockfish12");
 	
 	cmd.stdout(Stdio::piped());
+	cmd.stdin(Stdio::piped());
 	
 	let mut child = cmd.spawn()
         .expect("failed to spawn command");
@@ -512,10 +513,8 @@ async fn _exec_command() -> Result<(), Box<dyn std::error::Error>> {
     let stdout = child.stdout.take()
         .expect("child did not have a handle to stdout");
 	
-	let stdin = child.stdin.take()
+	let mut stdin = child.stdin.take()
 		.expect("child did not have a handle to stdin");
-	
-	let in_hnd = stdin.as_mut().unwrap()?;
 	
     let reader = BufReader::new(stdout).lines();
 	
@@ -535,7 +534,7 @@ async fn _exec_command() -> Result<(), Box<dyn std::error::Error>> {
 	
 	println!("spawned");
 	
-	let s:String = in_hnd;
+	stdin.write_all(b"uci\n").await?;
 	
 	Ok(())
 }
