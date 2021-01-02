@@ -511,7 +511,12 @@ async fn _exec_command() -> Result<(), Box<dyn std::error::Error>> {
 
     let stdout = child.stdout.take()
         .expect("child did not have a handle to stdout");
-
+	
+	let stdin = child.stdin.take()
+		.expect("child did not have a handle to stdin");
+	
+	let in_hnd = stdin.as_mut().unwrap()?;
+	
     let reader = BufReader::new(stdout).lines();
 	
 	tokio::spawn(async {
@@ -529,6 +534,8 @@ async fn _exec_command() -> Result<(), Box<dyn std::error::Error>> {
 	});
 	
 	println!("spawned");
+	
+	let s:String = in_hnd;
 	
 	Ok(())
 }
