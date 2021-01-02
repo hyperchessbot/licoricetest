@@ -275,18 +275,18 @@ impl From<&str> for PgnWithDigest {
 	}
 }
 
-
 #[derive(Debug, Serialize, Deserialize)]
-struct SanUciFen {
+struct SanUciFenEpd {
 	san: String,
 	uci: String,
 	fen: String,
+	epd: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct PgnMoves {
 	headers: std::collections::HashMap<String, String>,
-	moves: Vec<SanUciFen>,
+	moves: Vec<SanUciFenEpd>,
 }
 
 impl PgnMoves {
@@ -297,8 +297,8 @@ impl PgnMoves {
 		}
 	}
 	
-	fn push(&mut self, san_uci_fen: SanUciFen) {
-		self.moves.push(san_uci_fen);
+	fn push(&mut self, san_uci_fen_epd: SanUciFenEpd) {
+		self.moves.push(san_uci_fen_epd);
 	}
 	
 	fn insert_header(&mut self, key: String, value: String) {
@@ -369,8 +369,9 @@ impl Visitor for LastPosition {
 					Ok(m) => {
 						let uci_str = Uci::from_standard(&m).to_string();
 						let fen_str = format!("{}", fen::fen(&self.pos));
-						let san_uci_fen = SanUciFen{san: san_str, uci: uci_str, fen: fen_str};						
-						self.moves.push(san_uci_fen);
+						let epd_str = format!("{}", fen::epd(&self.pos));
+						let san_uci_fen_epd = SanUciFenEpd{san: san_str, uci: uci_str, fen: fen_str, epd: epd_str};						
+						self.moves.push(san_uci_fen_epd);
 						self.pos.play_unchecked(&m);
 					},
 					_ => println!("{:?}", move_result)
@@ -470,10 +471,11 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 		
 		let mut moves:PgnMoves = serde_json::from_str(moves.as_str())?;
 		
-		println!("{} - {} {}",
+		println!("{} - {} {}\n{:?}",
 			moves.get_header("White".to_string()),
 			moves.get_header("Black".to_string()),
-			moves.get_header("Result".to_string())
+			moves.get_header("Result".to_string()),
+			moves.moves[3],
 		);
 	}
 	
