@@ -25,6 +25,9 @@ use ring::{digest};
 
 use serde::{Deserialize, Serialize};
 
+use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc;
+
 //////////////////////////////////////////////////////////////////
 // MongoDb
 use mongodb::{Client, options::ClientOptions};
@@ -493,9 +496,13 @@ async fn _get_games_pgn() -> Result<(), Box<dyn std::error::Error>> {
 	Ok(())
 }
 
-async fn _read_stdout(mut reader: tokio::io::Lines<tokio::io::BufReader<tokio::process::ChildStdout>>) -> Result<(), Box<dyn std::error::Error>> {
+async fn _read_stdout(tx: Sender<String>, mut reader: tokio::io::Lines<tokio::io::BufReader<tokio::process::ChildStdout>>) -> Result<(), Box<dyn std::error::Error>> {
 	while let Some(line) = reader.next_line().await? {
 		println!("Line: {}", line);
+		if &line[0..8] == "bestmove" {
+			let send_result = tx.send(line);
+			println!("send result {:?}", send_result);
+		}
 	}
 	
 	Ok(())
@@ -524,9 +531,11 @@ async fn _exec_command() -> Result<(), Box<dyn std::error::Error>> {
 
         println!("child status was: {}", status);
     });
+	
+	let (tx, rx): (Sender<String>, Receiver<String>) = mpsc::channel();
 
 	tokio::spawn(async {
-		match _read_stdout(reader).await {
+		match _read_stdout(tx, reader).await {
 			Ok(result) => println!("reader ok {:?}", result),
 			Err(err) => println!("reader err {:?}", err)
 		}
@@ -534,12 +543,14 @@ async fn _exec_command() -> Result<(), Box<dyn std::error::Error>> {
 	
 	println!("spawned");
 	
-	stdin.write_all(b"uci\n").await?;
+	stdin.write_all(b"go depth 5\n").await?;
+	
+	let result = rx.recv();
+	
+	println!("bestmove {:?}", result);
 	
 	stdin.write_all(b"quit\n").await?;
-	
-	let _ = _get_games_pgn().await;
-	
+		
 	Ok(())
 }
 
